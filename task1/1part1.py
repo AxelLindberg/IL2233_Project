@@ -16,7 +16,7 @@ X = np.array(X)
 y = np.array(y)
 
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
 
 model = Sequential()
 model.add(Dense(64, input_dim=4, activation='relu'))  

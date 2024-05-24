@@ -7,11 +7,12 @@ from statsmodels.tsa.stattools import adfuller
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.arima.model import ARIMA
 
-df = pd.read_csv('GlobalTemperatures.csv', parse_dates=['dt'])
-df.set_index('dt', inplace=True)
+df = pd.read_csv('data.csv', delimiter=',', header=2, names=['Year', 'Temperature'])
+df['Year'] = pd.to_datetime(df['Year'], format='%Y')
+df.set_index('Year', inplace=True)
 
-
-series = df['LandAverageTemperature']['1880-01-01':'2020-01-01']
+# Select the time series data
+series = df['Temperature']['1880':'2020']
 
 series.interpolate(inplace=True)
 

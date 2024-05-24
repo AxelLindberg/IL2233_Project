@@ -8,11 +8,12 @@ from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.arima.model import ARIMA
 
 # Load the dataset
-df = pd.read_csv('GlobalTemperatures.csv', parse_dates=['dt'])
-df.set_index('dt', inplace=True)
+df = pd.read_csv('data.csv', delimiter=',', header=2, names=['Year', 'Temperature'])
+df['Year'] = pd.to_datetime(df['Year'], format='%Y')
+df.set_index('Year', inplace=True)
 
 # Select the time series data
-series = df['LandAverageTemperature']['1880-01-01':'2020-01-01']
+series = df['Temperature']['1880':'2020']
 
 # Interpolate missing values
 series.interpolate(inplace=True)
@@ -61,7 +62,7 @@ print(f"Standard Deviation: {std_dev}")
 # Fit ARIMA model
 p = 3
 d = 1
-q = 2
+q = 3
 model = ARIMA(differenced_series, order=(p, d, q))
 model_fit = model.fit()
 print(model_fit.summary())

@@ -40,7 +40,7 @@ plt.show()
 residual_z_scores = pd.Series(zscore(residual.dropna()), index=residual.dropna().index)
 
 # set the threshold to 3
-threshold = 2
+threshold = 3
 anomalies = residual_z_scores[abs(residual_z_scores) > 3]
 
 plt.figure(figsize=(10, 6))
