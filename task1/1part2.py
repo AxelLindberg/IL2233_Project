@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 series = np.linspace(0, 1, 200, endpoint=False)  # Exclude 1, 200 points
 
 noise_amplitude = 0.1  # Amp adjustment
-noise = np.random.normal(0, 0.25, series.shape) * noise_amplitude
+noise = np.random.normal(0, 1, series.shape) * noise_amplitude
 noisy_series = series + noise
 
 X = []
