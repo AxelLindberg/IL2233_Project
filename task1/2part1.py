@@ -37,10 +37,31 @@ model.fit(X_train, y_train, epochs=100, batch_size=8, validation_data=(X_test, y
 loss = model.evaluate(X_test, y_test)
 print(f'Test Loss: {loss}')
 
-example_input = X_test[0].reshape(1, input_size, 1)
-predicted_value = model.predict(example_input)
-print(f'Predicted next value: {predicted_value}')
-print(f'Actual next value: {y_test[0]}')
+# Plotting original series and predicted series
+total_points = len(white_noise)
+train_size = int(0.8 * total_points)
+
+plt.figure(figsize=(10, 6))
+
+# Plot original series
+plt.plot(np.arange(0, train_size), white_noise[:train_size], label='Original Series (Training)', color='blue')
+plt.plot(np.arange(train_size, total_points), white_noise[train_size:], label='Original Series (Testing)', color='green')
+
+# Plot predicted series
+predicted_series = []
+
+for i in range(train_size, total_points):
+    example_input = white_noise[i-input_size:i].reshape(1, input_size, 1)
+    predicted_value = model.predict(example_input)
+    predicted_series.append(predicted_value[0][0])
+
+plt.plot(np.arange(train_size, total_points), predicted_series, label='Predicted Series', color='red')
+
+plt.title('Original Series and Predicted Series')
+plt.xlabel('Time')
+plt.ylabel('Value')
+plt.legend()
+plt.show()
 
 prediction_errors = []
 for i in range(len(X_test)):
@@ -55,3 +76,5 @@ plt.title('Prediction Error Series (White Noise)')
 plt.xlabel('Time')
 plt.ylabel('Error')
 plt.show()
+
+
