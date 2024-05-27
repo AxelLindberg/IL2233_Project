@@ -73,23 +73,39 @@ predictions = model_fit.predict(start=0, end=len(differenced_series)-1)
 # Calculate residuals
 residuals = differenced_series - predictions
 
-# Identify anomalies based on the residuals
-residuals_abs = abs(residuals)
-anomaly_threshold = np.percentile(residuals_abs, 98)  # 98th percentile for 2% threshold
-print("Anomaly Threshold:", anomaly_threshold)
-anomalies = residuals[residuals_abs > anomaly_threshold]
+# Calculate z-scores for residuals
+residuals_mean = residuals.mean()
+residuals_std = residuals.std()
+z_scores = (residuals - residuals_mean) / residuals_std
+
+# Calculate the 98th percentile threshold for z-scores
+z_score_threshold = np.percentile(abs(z_scores), 98)
+print("Z-score Threshold for Anomalies (98th Percentile):", z_score_threshold)
+
+# Identify anomalies based on z-score threshold
+anomalies = residuals[abs(z_scores) > z_score_threshold]
 
 # Plot residuals and anomalies
 plt.figure(figsize=(10, 6))
-plt.plot(residuals, label='Residuals')
+plt.plot(series , label='Series')
 plt.scatter(anomalies.index, anomalies, color='red', label='Anomalies')
 plt.legend()
 plt.title('Residuals and Anomalies')
 plt.show()
 
-# Calculate the number of anomalies to match the 2% ratio
-num_anomalies = int(0.02 * len(differenced_series))
-anomalies = residuals.abs().nlargest(num_anomalies)
-
-print("Anomalies:")
+print("Anomalies (Z-scores):")
 print(anomalies)
+
+# Make in-sample predictions
+predictions = model_fit.predict(start=0, end=len(differenced_series)-1)
+
+# Calculate residuals (prediction errors)
+residuals = differenced_series - predictions
+
+# Plot residuals
+plt.figure(figsize=(10, 6))
+plt.plot(residuals, label='Residuals')
+plt.title('Residuals (Prediction Errors)')
+plt.legend()
+plt.show()
+

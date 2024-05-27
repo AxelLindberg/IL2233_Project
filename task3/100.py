@@ -43,7 +43,6 @@ plt.title('V5 Lag-2 Plot')
 plt.tight_layout()
 plt.show()
 
-
 # Function to create input-output pairs for LSTM
 def create_dataset(data, input_size, output_size):
     X, y = [], []
@@ -64,38 +63,89 @@ output_size = 1  # Output vector size
 residuals = []
 
 for input_size in input_sizes:
-    lstm_model = Sequential()
-    lstm_model.add(LSTM(64, input_shape=(input_size, 1)))
-    lstm_model.add(Dense(2))
-    lstm_model.compile(optimizer='adam', loss='mse')
+    # Train model to predict next value of MLII
+    lstm_model_mlii = Sequential()
+    lstm_model_mlii.add(LSTM(64, input_shape=(input_size, 1)))
+    lstm_model_mlii.add(Dense(1))
+    lstm_model_mlii.compile(optimizer='adam', loss='mse')
 
-    # Create input-output pairs for training
-    X_train, y_train = create_dataset(train_data['MLII'], input_size, output_size)
-    X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
+    # Create input-output pairs for training MLII
+    X_train_mlii, y_train_mlii = create_dataset(train_data['MLII'], input_size, output_size)
+    X_train_mlii = X_train_mlii.reshape((X_train_mlii.shape[0], X_train_mlii.shape[1], 1))
 
     # Train the LSTM model
-    lstm_model.fit(X_train, y_train, epochs=10, batch_size=32)
+    lstm_model_mlii.fit(X_train_mlii, y_train_mlii, epochs=10, batch_size=32)
 
-    # Evaluate the LSTM model
-    X_test, y_test = create_dataset(test_data['MLII'], input_size, output_size)
-    X_test = X_test.reshape((X_test.shape[0], X_test.shape[1], 1))
-    #lstm_loss = lstm_model.evaluate(X_test, y_test)
+    # Evaluate the LSTM model on MLII test data
+    X_test_mlii, y_test_mlii = create_dataset(test_data['MLII'], input_size, output_size)
+    X_test_mlii = X_test_mlii.reshape((X_test_mlii.shape[0], X_test_mlii.shape[1], 1))
+    
+    y_pred_mlii = lstm_model_mlii.predict(X_test_mlii)
 
-    y_pred = lstm_model.predict(X_test)
+    # Compute residuals for MLII
+    residuals.append(y_test_mlii.flatten() - y_pred_mlii.flatten())
 
-    # Compute residuals
-    residuals.append(y_test - y_pred)
-       
+    # Train model to predict next value of V5
+    lstm_model_v5 = Sequential()
+    lstm_model_v5.add(LSTM(64, input_shape=(input_size, 1)))
+    lstm_model_v5.add(Dense(1))
+    lstm_model_v5.compile(optimizer='adam', loss='mse')
 
-for i in range(len(residuals)):
-    residuals_abs = abs(residuals[i])
-    anomaly_threshold = np.percentile(residuals_abs, 99.5)  # 98th percentile for 2% threshold
-    print("Anomaly Threshold:", anomaly_threshold)
-    anomalies = residuals[i][residuals_abs > anomaly_threshold]
-    plt.figure(figsize=(10, 6))
-    plt.plot(residuals[i], label='Residuals')
-    plt.scatter(anomalies.index, anomalies, color='red', label='Anomalies')
-    plt.legend()
-    plt.title('Residuals and Anomalies')
-    plt.show()  
+    # Create input-output pairs for training V5
+    X_train_v5, y_train_v5 = create_dataset(train_data['V5'], input_size, output_size)
+    X_train_v5 = X_train_v5.reshape((X_train_v5.shape[0], X_train_v5.shape[1], 1))
 
+    # Train the LSTM model
+    lstm_model_v5.fit(X_train_v5, y_train_v5, epochs=10, batch_size=32)
+
+    # Evaluate the LSTM model on V5 test data
+    X_test_v5, y_test_v5 = create_dataset(test_data['V5'], input_size, output_size)
+    X_test_v5 = X_test_v5.reshape((X_test_v5.shape[0], X_test_v5.shape[1], 1))
+    
+    y_pred_v5 = lstm_model_v5.predict(X_test_v5)
+
+    # Compute residuals for V5
+    residuals.append(y_test_v5.flatten() - y_pred_v5.flatten())
+
+    # Train bi-variate model to predict next value of MLII using both MLII and V5
+    lstm_model_bivariate = Sequential()
+    lstm_model_bivariate.add(LSTM(64, input_shape=(input_size, 2)))
+    lstm_model_bivariate.add(Dense(1))
+    lstm_model_bivariate.compile(optimizer='adam', loss='mse')
+
+    # Create input-output pairs for training bi-variate series
+    train_series = np.column_stack((train_data['MLII'], train_data['V5']))
+    X_train_bi, y_train_bi = create_dataset(train_series, input_size, output_size)
+    X_train_bi = X_train_bi.reshape((X_train_bi.shape[0], X_train_bi.shape[1], 2))
+    y_train_bi = y_train_bi[:, :, 0]  # Predicting the next value of MLII
+
+    # Train the LSTM model
+    lstm_model_bivariate.fit(X_train_bi, y_train_bi, epochs=10, batch_size=32)
+
+    # Evaluate the LSTM model on bi-variate test data
+    test_series = np.column_stack((test_data['MLII'], test_data['V5']))
+    X_test_bi, y_test_bi = create_dataset(test_series, input_size, output_size)
+    X_test_bi = X_test_bi.reshape((X_test_bi.shape[0], X_test_bi.shape[1], 2))
+    y_test_bi = y_test_bi[:, :, 0]  # Actual next value of MLII
+    
+    y_pred_bi = lstm_model_bivariate.predict(X_test_bi)
+
+    # Compute residuals for bi-variate series
+    residuals.append(y_test_bi.flatten() - y_pred_bi.flatten())
+
+# Plot residuals and anomalies
+for i, input_size in enumerate(input_sizes):
+    for j, label in enumerate(['MLII', 'V5', 'Bi-variate']):
+        residuals_abs = abs(residuals[i * 3 + j])
+        anomaly_threshold = np.percentile(residuals_abs, 98)  # 98th percentile for 2% threshold
+        anomalies_indices = np.where(residuals_abs > anomaly_threshold)[0]
+        anomalies = residuals[i * 3 + j][anomalies_indices]
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(residuals[i * 3 + j], label='Residuals')
+        plt.scatter(anomalies_indices, anomalies, color='red', label='Anomalies')
+        plt.legend()
+        plt.title(f'Residuals and Anomalies for Input Size {input_size} ({label})')
+        plt.xlabel('Time')
+        plt.ylabel('Residuals')
+        plt.show()

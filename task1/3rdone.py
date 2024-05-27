@@ -24,25 +24,47 @@ train_size = 40
 test_size = length - train_size
 train, test = fibonacci_series[:train_size], fibonacci_series[train_size:]
 
-# Check stationarity
-result = adfuller(train)
-print(f'ADF Statistic: {result[0]}')
-print(f'p-value: {result[1]}')
-
-# Difference the series if it's not stationary
-if result[1] > 0.05:
-    train_diff = np.diff(train)
-else:
-    train_diff = train
+fibonacci_series_log = np.log(fibonacci_series)
 
 # Plot ACF and PACF
 plt.figure(figsize=(12, 6))
 plt.subplot(211)
-plot_acf(train_diff, lags=15, ax=plt.gca())
+plot_acf(fibonacci_series_log, lags=15, ax=plt.gca())
 plt.subplot(212)
-plot_pacf(train_diff, lags=15, ax=plt.gca())
+plot_pacf(fibonacci_series_log, lags=15, ax=plt.gca())
 plt.show()
 
+
+model = ARIMA(fibonacci_series_log, order=(2, 1, 0))
+model_fit = model.fit()
+print(model_fit.summary())
+
+
+residuals = model_fit.resid
+
+# Plot the residuals
+plt.figure(figsize=(12, 6))
+plt.plot(residuals, label='Residuals')
+plt.title('ARIMA Model Residuals')
+plt.legend()
+plt.show()
+
+# Forecasting
+forecast = model_fit.forecast(steps=test_size)
+print("Forecasted values:")
+print(forecast)
+
+#plot forecast against actual values
+plt.figure(figsize=(12, 6))
+plt.plot(np.arange(0, train_size), fibonacci_series[:train_size], label='Training Data')
+plt.plot(np.arange(train_size, length), fibonacci_series[train_size:], label='Test Data')
+plt.plot(np.arange(train_size, length), forecast, label='Forecast')
+plt.title('Fibonacci Series with ARIMA Forecast')
+plt.legend()
+plt.show()
+
+
+'''
 # Prepare the training data for MLP model
 train_mlp = np.array([train[i:i+5] for i in range(train_size-5)])
 train_mlp_labels = train[5:]
@@ -93,19 +115,20 @@ forecast = np.concatenate((train[-1:], forecast_diff)).cumsum()
 forecast = forecast[1:]  # Remove the extra first element
 
 # Function to evaluate model
-def evaluate_model_residuals(model, test, input_shape=None):
+def evaluate_model_residuals(model, X_test, y_test, input_shape=None):
     if input_shape is None:
-        predictions = model.predict(np.array([test[i:i+5] for i in range(len(test)-5)]))
+        predictions = model.predict(X_test)
     else:
-        predictions = model.predict(test.reshape(input_shape)).flatten()
-    residuals = test[5:] - predictions
-    mse = mean_squared_error(test[5:], predictions)
-    mae = mean_absolute_error(test[5:], predictions)
-    mape = np.mean(np.abs(residuals / test[5:])) * 100
+        predictions = model.predict(X_test.reshape(input_shape)).flatten()
+    residuals = y_test - predictions
+    mse = mean_squared_error(y_test, predictions)
+    mae = mean_absolute_error(y_test, predictions)
+    mape = np.mean(np.abs(residuals / y_test)) * 100
     return mse, mae, mape, residuals
 
-test_mlp = np.array([test[i:i+5] for i in range(test_size-5)])
-mlp_mse, mlp_mae, mlp_mape, mlp_residuals = evaluate_model_residuals(mlp_model, test_mlp)
+# Evaluate models
+y_test = test[5:]
+mlp_mse, mlp_mae, mlp_mape, mlp_residuals = evaluate_model_residuals(mlp_model, X_test, y_test)
 
 test_rnn = test_mlp.reshape(-1, 5, 1)
 rnn_mse, rnn_mae, rnn_mape, rnn_residuals = evaluate_model_residuals(rnn_model, test_rnn, (-1, 5, 1))
@@ -124,3 +147,4 @@ print("RNN Model:")
 print(f"MSE: {rnn_mse}, MAE: {rnn_mae}, MAPE: {rnn_mape}%")
 print("LSTM Model:")
 print(f"MSE: {lstm_mse}, MAE: {lstm_mae}, MAPE: {lstm_mape}%")
+'''
