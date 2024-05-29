@@ -45,10 +45,11 @@ num_anomalies = int(anomaly_ratio * len(data))
 anomaly_indices = sorted_indices[:num_anomalies]
 anomalies = data[anomaly_indices]
 
-# Visualize anomalies
+# Visualize anomalies with centroids
 plt.figure(figsize=(7, 7))
 plt.scatter(X1, X2, label='Normal Data')
 plt.scatter(anomalies[:, 0], anomalies[:, 1], color='red', label='Anomalies')
+plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], marker='x', color='black', label='Centroids')
 plt.xlabel('X1')
 plt.ylabel('X2')
 plt.title('Anomaly Detection with K-means')
@@ -77,4 +78,3 @@ plt.ylabel('X2')
 plt.title('Anomaly Detection with SOM')
 plt.legend()
 plt.show()
-

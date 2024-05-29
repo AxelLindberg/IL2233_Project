@@ -61,6 +61,8 @@ output_size = 1  # Output vector size
 
 # Create and train LSTM models with different input sizes
 residuals = []
+mse_scores = []
+mape_scores = []
 
 for input_size in input_sizes:
     # Train model to predict next value of MLII
@@ -85,6 +87,11 @@ for input_size in input_sizes:
     # Compute residuals for MLII
     residuals.append(y_test_mlii.flatten() - y_pred_mlii.flatten())
 
+    mse_mlii = np.mean((y_test_mlii.flatten() - y_pred_mlii.flatten()) ** 2)
+    mape_mlii = np.mean(np.abs((y_test_mlii.flatten() - y_pred_mlii.flatten()) / y_test_mlii.flatten())) * 100
+    mse_scores.append((input_size, 'MLII', mse_mlii))
+    mape_scores.append((input_size, 'MLII', mape_mlii))
+
     # Train model to predict next value of V5
     lstm_model_v5 = Sequential()
     lstm_model_v5.add(LSTM(64, input_shape=(input_size, 1)))
@@ -106,6 +113,11 @@ for input_size in input_sizes:
 
     # Compute residuals for V5
     residuals.append(y_test_v5.flatten() - y_pred_v5.flatten())
+
+    mse_v5 = np.mean((y_test_v5.flatten() - y_pred_v5.flatten()) ** 2)
+    mape_v5 = np.mean(np.abs((y_test_v5.flatten() - y_pred_v5.flatten()) / y_test_v5.flatten())) * 100
+    mse_scores.append((input_size, 'V5', mse_v5))
+    mape_scores.append((input_size, 'V5', mape_v5))
 
     # Train bi-variate model to predict next value of MLII using both MLII and V5
     lstm_model_bivariate = Sequential()
@@ -133,6 +145,11 @@ for input_size in input_sizes:
     # Compute residuals for bi-variate series
     residuals.append(y_test_bi.flatten() - y_pred_bi.flatten())
 
+    mse_bi = np.mean((y_test_bi.flatten() - y_pred_bi.flatten()) ** 2)
+    mape_bi = np.mean(np.abs((y_test_bi.flatten() - y_pred_bi.flatten()) / y_test_bi.flatten())) * 100
+    mse_scores.append((input_size, 'Bi-variate', mse_bi))
+    mape_scores.append((input_size, 'Bi-variate', mape_bi))
+
 # Plot residuals and anomalies
 for i, input_size in enumerate(input_sizes):
     for j, label in enumerate(['MLII', 'V5', 'Bi-variate']):
@@ -149,3 +166,14 @@ for i, input_size in enumerate(input_sizes):
         plt.xlabel('Time')
         plt.ylabel('Residuals')
         plt.show()
+
+# Print MSE and MAPE scores
+print("\nMSE Scores:")
+for score in mse_scores:
+    print(f"Input Size: {score[0]}, Model: {score[1]}, MSE: {score[2]}")
+
+print("\nMAPE Scores:")
+for score in mape_scores:
+    print(f"Input Size: {score[0]}, Model: {score[1]}, MAPE: {score[2]}%")
+
+
